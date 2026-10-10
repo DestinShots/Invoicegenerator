@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Destin Invoice Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+:root{--bg:#f6f4f8;--card:#fff;--ink:#1d1a22;--mute:#6b6575;--line:#ddd7e4;--pur:#7030a0;--org:#ff8000;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17141b;--card:#221e29;--ink:#f1edf6;--mute:#a59fb0;--line:#3a3444}}
+:root[data-theme="dark"]{--bg:#17141b;--card:#221e29;--ink:#f1edf6;--mute:#a59fb0;--line:#3a3444}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 Calibri,Carlito,Arial,sans-serif}
+.app{max-width:1280px;margin:0 auto;padding:16px;display:grid;gap:20px}
+@media(min-width:1000px){.app{grid-template-columns:420px 1fr;align-items:start}.form{position:sticky;top:16px}}
+.form{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px}
+h1{font-size:20px;margin:0 0 12px}
+h2{font-size:16px;margin:18px 0 8px}
+label{display:block;font-size:14px;color:var(--mute);margin:10px 0 3px}
+input{width:100%;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+input:focus,button:focus-visible{outline:2px solid var(--pur);outline-offset:1px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.item{border:1px solid var(--line);border-radius:8px;padding:10px;margin-bottom:10px}
+.item .top{display:flex;justify-content:space-between;align-items:center;font-weight:700}
+.item label{margin-top:6px}
+button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 12px}
+.add{width:100%;border-style:dashed;color:var(--pur);font-weight:700}
+.dl{width:100%;margin-top:16px;background:var(--pur);color:#fff;border:0;padding:13px;font-weight:700;font-size:17px}
+.dl:disabled{opacity:.6}
+.msg{font-size:14px;color:var(--mute);min-height:20px;margin-top:6px}
+.pv{overflow:hidden;border:1px solid var(--line);border-radius:10px;background:#fff}
+#scale{transform-origin:top left;width:794px}
+/* invoice sheet (always light, A4) */
+#sheet{width:794px;height:1123px;background:#fff;color:#000;padding:60px 56px;font:14px Calibri,Carlito,Arial,sans-serif;position:relative}
+#sheet h3{text-align:center;color:var(--pur);font:900 28px "Arial Black",Arial,sans-serif;margin:30px 0 14px}
+.tag{color:var(--org);font:14px Arial,sans-serif;margin:0 0 14px}
+.inv{font:900 26px "Arial Black",Arial,sans-serif;margin:0 0 6px}
+table{border-collapse:collapse;width:100%}
+td,th{border:1px solid #000;padding:2px 6px;text-align:left;vertical-align:top}
+.info td{font-size:12px;width:50%;height:19px}
+.info tr.cl td{background:var(--org);font:20px Arial,sans-serif;height:26px}
+.info tr.ev td{font-size:15px}
+.items{margin-top:44px}
+.items th{background:var(--pur);color:#fff;font-weight:400;font-size:12px}
+.items td{font-size:12px;height:19px}
+.items td.d{font:13px "Times New Roman",serif}
+.items td.a{text-align:center}
+.items tr.t td{font-weight:700;height:22px}
+.items tr.t td.a{text-align:left;white-space:nowrap}
+.notes{margin-top:30px;font-size:14px}
+.notes p{margin:0 0 30px}
+.notes a{color:#0563c1}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="form">
+    <h1>New invoice</h1>
+    <label for="client">Client</label><input id="client" autocomplete="off">
+    <label for="event">Event</label><input id="event" autocomplete="off">
+    <label for="date">Date</label><input id="date" type="date">
+    <label for="venue">Venue</label><input id="venue" autocomplete="off">
+    <label for="total">Total amount (NGN)</label><input id="total" inputmode="numeric" placeholder="100000">
+    <h2>Deliverables</h2>
+    <div id="items"></div>
+    <button class="add" id="add" type="button">+ Add deliverable</button>
+    <button class="dl" id="dl" type="button">Download PDF</button>
+    <div class="msg" id="msg" role="status"></div>
+  </section>
+  <section class="pv" id="pv"><div id="scale">
+    <div id="sheet">
+      <h3>Destin</h3>
+      <p class="tag">Visual Storyteller for Events, Weddings, Lifestyle and Fashion</p>
+      <p class="inv">INVOICE</p>
+      <table class="info">
+        <tr class="cl"><td>Client:</td><td id="p-client"></td></tr>
+        <tr class="ev"><td>Event</td><td id="p-event"></td></tr>
+        <tr><td>Date</td><td id="p-date"></td></tr>
+        <tr><td>Total Amount</td><td id="p-total"></td></tr>
+        <tr><td>Payment Method</td><td>Bank Transfer</td></tr>
+        <tr><td>Bank Name</td><td>GTB</td></tr>
+        <tr><td>Account Number</td><td>0663811718</td></tr>
+        <tr><td>Account Name</td><td>Nwambueze Destiny Chinedu</td></tr>
+        <tr><td>VENUE</td><td id="p-venue"></td></tr>
+      </table>
+      <table class="items">
+        <thead><tr><th style="width:44px">S/N</th><th style="width:170px">Service</th><th>Description</th><th style="width:90px">Amount</th></tr></thead>
+        <tbody id="p-rows"></tbody>
+      </table>
+      <div class="notes">
+        <p><b>Payment Agreement:</b> 70% will be paid before the date of event and the remaining 30% will be paid upon completion and delivery of the final content stated above.</p>
+        <p>Contact: <a>destinmedia123@gmail.com</a> || +2349038490730</p>
+        <p>Thanks for Trusting us with your day.</p>
+      </div>
+    </div>
+  </div></section>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const KEY='destin-invoice-v1';
+const blank=()=>({s:'Mobile content creation',d:'',a:''});
+let st={client:'',event:'',date:new Date().toISOString().slice(0,10),doe:'',venue:'',total:'',items:[blank(),blank(),blank()]};
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&Array.isArray(s.items)&&s.items.length)st=Object.assign(st,s)}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmtDate=v=>{if(!v)return'';const d=new Date(v+'T00:00:00');return d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})};
+const fmtTotal=v=>{const n=String(v).replace(/[^\d.]/g,'');return n?'NGN'+Number(n).toLocaleString('en-US'):''};
+
+function buildItems(){
+  $('items').innerHTML=st.items.map((it,i)=>`<div class="item"><div class="top"><span>Item ${i+1}</span><button type="button" data-rm="${i}" ${st.items.length<2?'disabled':''} aria-label="Remove item ${i+1}">Remove</button></div>
+  <label>Service</label><input data-i="${i}" data-k="s" value="${esc(it.s)}">
+  <label>Description</label><input data-i="${i}" data-k="d" value="${esc(it.d)}">
+  <label>Amount (optional)</label><input data-i="${i}" data-k="a" value="${esc(it.a)}"></div>`).join('');
+}
+function render(){
+  $('p-client').textContent=st.client;$('p-event').textContent=st.event;
+  $('p-date').textContent=fmtDate(st.date);
+  $('p-venue').textContent=st.venue;$('p-total').textContent=fmtTotal(st.total);
+  $('p-rows').innerHTML=st.items.map((it,i)=>`<tr><td>${i+1}</td><td>${esc(it.s)}</td><td class="d">${esc(it.d)}</td><td class="a">${esc(it.a)}</td></tr>`).join('')
+   +`<tr class="t"><td></td><td>Total</td><td></td><td class="a">${esc(fmtTotal(st.total))}</td></tr>`;
+  save();
+}
+['client','event','date','venue','total'].forEach(k=>{
+  $(k).value=st[k];
+  $(k).addEventListener('input',e=>{st[k]=e.target.value;render()});
+});
+$('items').addEventListener('input',e=>{const t=e.target;if(t.dataset.k){st.items[+t.dataset.i][t.dataset.k]=t.value;render()}});
+$('items').addEventListener('click',e=>{const r=e.target.dataset.rm;if(r!==undefined&&st.items.length>1){st.items.splice(+r,1);buildItems();render()}});
+$('add').addEventListener('click',()=>{st.items.push(blank());buildItems();render();const l=$('items').querySelectorAll('.item');l[l.length-1].querySelector('input[data-k="d"]').focus()});
+
+// fit preview to its container
+function fit(){const w=$('pv').clientWidth,s=Math.min(1,w/794);$('scale').style.transform=`scale(${s})`;$('pv').style.height=(1123*s)+'px'}
+addEventListener('resize',fit);
+
+let dlNs=null;
+(async()=>{try{dlNs=await window.claude.use('downloads')}catch(e){dlNs=null}})();
+
+$('dl').addEventListener('click',async()=>{
+  const btn=$('dl'),msg=$('msg'),sc=$('scale');
+  btn.disabled=true;msg.textContent='Making your PDF...';
+  const prev=sc.style.transform;sc.style.transform='none';
+  const name=('Invoice - '+(st.client||'Client')+'.pdf').replace(/[\\/:*?"<>|]/g,'');
+  try{
+    const w=html2pdf().set({margin:0,image:{type:'jpeg',quality:.98},html2canvas:{scale:2,useCORS:true,scrollX:0,scrollY:0,windowWidth:794},jsPDF:{unit:'px',format:[794,1123],hotfix:['px_scaling'],orientation:'portrait'}}).from($('sheet'));
+    if(dlNs){
+      const blob=await w.outputPdf('blob');
+      sc.style.transform=prev;
+      await dlNs.save({filename:name,data:blob});
+      msg.textContent='PDF ready.';
+    }else{await w.save(name);sc.style.transform=prev;msg.textContent='PDF ready.'}
+  }catch(e){
+    sc.style.transform=prev;
+    msg.textContent=(e&&e.code==='declined')?'Download cancelled.':'Could not make the PDF. Try again.';
+  }finally{sc.style.transform=prev;btn.disabled=false}
+});
+
+buildItems();render();fit();
+</script>
+</body>
+</html>
